@@ -37,3 +37,28 @@ bun packages/jev-retrieval/src/cli.ts reranker-and-traversal packages/jev-retrie
 ```
 
 A user dataset uses the same JSON shape as `fixtures/dataset.json`. Reports include recall@k, nDCG@k, evidence coverage, stale inclusion, p50/p95 end-to-end latency, graph reads, candidates, TypeSafe requests, fallback rate, and SDK-reported token/cost usage. Estimated cost is intentionally omitted until verified pricing is supplied; no benchmark numbers are checked into docs. Timing from tiny fixtures is tooling validation, not a performance claim.
+
+## LongMemEval benchmark
+
+This harness evaluates **retrieval of answer-bearing sessions**, not LongMemEval answer generation or the official end-to-end judge score. It consumes the official cleaned JSON array fields (`question_id`, `question`, `question_date`, `haystack_sessions`, `haystack_session_ids`, `haystack_dates`, and, when present, `answer_session_ids`). Each session remains one provenance-bearing candidate; adjacent chronological sessions receive deterministic bidirectional fixture edges. Initial candidate scores use the same deterministic token-overlap policy in every mode. No LongMemEval result files or scores are committed.
+
+1. Download an official LongMemEval cleaned JSON file from the LongMemEval project and leave it outside Git, for example at `$HOME/datasets/longmemeval_s_cleaned.json`.
+2. Install the TypeSafe skill and dependencies after network access is restored, verify the current SDK/model against the official documentation, and set `TYPESAFE_API_KEY` without printing it.
+3. Create a local, uncommitted TypeScript module that exports `judge: JevJudge`, backed by the official `@typesafe-ai/sdk`. The explicit module boundary prevents this repository from guessing an SDK method or model identifier while its documentation is inaccessible.
+4. Run a small smoke benchmark, then the full comparison:
+
+```sh
+# Baseline smoke test (does not require TypeSafe)
+bun packages/jev-retrieval/src/longmemeval-cli.ts \
+  --dataset "$HOME/datasets/longmemeval_s_cleaned.json" \
+  --output ./longmemeval-results/smoke --modes baseline --limit 10
+
+# All three experiments plus the shared baseline
+bun packages/jev-retrieval/src/longmemeval-cli.ts \
+  --dataset "$HOME/datasets/longmemeval_s_cleaned.json" \
+  --output ./longmemeval-results/full \
+  --modes baseline,reranker-only,graph-traversal-only,reranker-and-traversal \
+  --judge-module "$HOME/private/typesafe-judge.ts"
+```
+
+The command writes one report per mode (`baseline.json`, `reranker-only.json`, `graph-traversal-only.json`, and `reranker-and-traversal.json`). Each includes per-question selected/relevant session IDs, recall@k, nDCG@k, latency, candidates, graph reads, TypeSafe requests, usage, and fallback details, plus aggregates. Questions without `answer_session_ids` remain in operational metrics but are excluded from labeled recall/nDCG. Treat nonzero fallback rates as contaminated experimental runs, and use SDK-reported cost only; the harness does not invent pricing estimates.

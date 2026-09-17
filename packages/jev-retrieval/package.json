@@ -6,7 +6,8 @@
   "scripts": {
     "test": "bun test",
     "check-types": "tsc --noEmit",
-    "evaluate": "bun src/cli.ts"
+    "evaluate": "bun src/cli.ts",
+    "benchmark:longmemeval": "bun src/longmemeval-cli.ts"
   },
   "dependencies": {
     "@typesafe-ai/sdk": "latest"
