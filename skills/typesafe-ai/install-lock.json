@@ -1,0 +1,1 @@
+{"source":"https://github.com/typesafe-ai/skills/tree/main/skills/typesafe-ai","agent":"codex","command":"npx skills add typesafe-ai/skills --skill typesafe-ai --agent codex --yes","attemptedAt":"2026-09-17","installed":false,"error":"HTTP 403 from environment proxy"}
