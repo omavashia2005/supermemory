@@ -2,7 +2,7 @@ import { mkdir } from "node:fs/promises";
 declare const Bun: { file(path: string): { text(): Promise<string> }; write(path: string, data: string): Promise<number> };
 declare const process: { cwd(): string };
 import { FixtureProvider } from "./providers";
-import { retrieve } from "./core";
+import { DEFAULT_LIMITS, retrieve } from "./core";
 import { JEV_COST_ASSUMPTION } from "./typesafe";
 import type { Edge, ExperimentMode, JevJudge, Memory } from "./types";
 
@@ -28,6 +28,7 @@ export interface LongMemEvalOptions {
   contextTokens?: number;
   initialCandidates?: number;
   topK?: number;
+  maxTypeSafeRequests?: number;
 }
 
 const words = (value: string) => new Set(value.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []);
@@ -88,7 +89,7 @@ export async function runLongMemEval(options: LongMemEvalOptions) {
         mode, query: record.question, tenantId: record.question_id,
         candidateProvider: provider, graphProvider: provider, judge: options.judge,
         now: record.question_date ?? "9999-12-31T23:59:59.999Z",
-        limits: { contextTokens: options.contextTokens ?? 8_000, initialCandidates: options.initialCandidates ?? 20, topK: options.topK ?? 10 },
+        limits: { contextTokens: options.contextTokens ?? 8_000, initialCandidates: options.initialCandidates ?? 20, topK: options.topK ?? 10, maxTypeSafeRequests: options.maxTypeSafeRequests ?? DEFAULT_LIMITS.maxTypeSafeRequests },
       });
       const ranked = result.ranked.map((memory) => memory.id);
       const selected = result.memories.map((memory) => memory.id);
@@ -104,6 +105,7 @@ export async function runLongMemEval(options: LongMemEvalOptions) {
     const scored = rows.filter((row) => row.recallAtK !== null);
     const report = {
       benchmark: "LongMemEval retrieval prototype", mode, datasetPath: options.datasetPath, k: options.topK ?? 10,
+      limits: { contextTokens: options.contextTokens ?? 8_000, initialCandidates: options.initialCandidates ?? 20, maxInputTokens: DEFAULT_LIMITS.maxInputTokens, maxTypeSafeRequests: options.maxTypeSafeRequests ?? DEFAULT_LIMITS.maxTypeSafeRequests },
       questionCount: rows.length, labeledRetrievalCount: scored.length,
       summary: {
         recallAtK: mean(scored.map((row) => row.recallAtK!)), ndcgAtK: mean(scored.map((row) => row.ndcgAtK!)),

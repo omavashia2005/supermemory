@@ -69,9 +69,10 @@ bun --env-file=.env.local packages/jev-retrieval/src/longmemeval-cli.ts \
   --dataset /path/to/longmemeval_s_cleaned.json \
   --output ./longmemeval-results/full \
   --modes baseline,reranker-only,graph-traversal-only,reranker-and-traversal \
-  --judge-module packages/jev-retrieval/examples/typesafe-judge.ts --k 10
+  --judge-module packages/jev-retrieval/examples/typesafe-judge.ts --k 10 \
+  --max-typesafe-requests 32
 ```
 
-Reports contain per-question ranked and context-selected session IDs, recall@k, nDCG@k, evidence coverage, p50/p95 retrieval latency, graph reads, candidates, TypeSafe requests, token usage, estimated cost, and fallback rate. Results are written locally under the ignored `longmemeval-results/` directory. Inspect the per-question IDs and fallbacks before comparing aggregate scores.
+Candidate judgments are greedily split into requests within the shared 12,000-token chars/4 input estimate; original session text and provenance remain unchanged. Set the same `--max-typesafe-requests` cap for every mode (32 allows the 20 candidates to be scored in batches plus bounded expansion calls). Reports include configured limits and per-question ranked/context-selected session IDs, recall@k, nDCG@k, evidence coverage, p50/p95 retrieval latency, graph reads, candidates, actual TypeSafe requests and token usage, estimated cost, and fallback rate. Results are written locally under the ignored `longmemeval-results/` directory. Inspect fallback rates before comparing scores.
 
 To assess the native Supermemory task experience, use the existing application/API separately. The fork cannot change or instrument its hidden retrieval stages, and the LongMemEval adapter measures retrieval only; it does not measure answer quality or interaction feel.

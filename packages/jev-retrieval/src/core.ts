@@ -67,6 +67,34 @@ async function call(judge: JevJudge, input: Parameters<JevJudge["judge"]>[0], al
   throw last;
 }
 
+function candidateBatches(input: Parameters<JevJudge["judge"]>[0], budget: number) {
+  const batches: Memory[][] = [];
+  let batch: Memory[] = [];
+  for (const candidate of input.candidates) {
+    const next = [...batch, candidate];
+    if (tokens(JSON.stringify({ ...input, candidates: next })) <= budget) {
+      batch = next;
+      continue;
+    }
+    if (batch.length) batches.push(batch);
+    batch = [candidate];
+    if (tokens(JSON.stringify({ ...input, candidates: batch })) > budget) throw new Error(`candidate ${candidate.id} exceeds estimated TypeSafe input token limit`);
+  }
+  if (batch.length) batches.push(batch);
+  return batches;
+}
+
+async function judgeCandidates(judge: JevJudge, input: Parameters<JevJudge["judge"]>[0], limits: Limits, trace: Trace) {
+  const judgments: Judgment[] = [];
+  for (const candidates of candidateBatches(input, limits.maxInputTokens)) {
+    const allowed = new Set(candidates.map((candidate) => candidate.id));
+    const { result, judgments: batch } = await call(judge, { ...input, candidates }, allowed, limits, trace);
+    addUsage(trace, result.usage);
+    judgments.push(...batch);
+  }
+  return judgments;
+}
+
 function select(memories: Memory[], budget: number) {
   const selected: Memory[] = [];
   let used = 0;
@@ -118,8 +146,7 @@ export async function retrieve(args: { mode: ExperimentMode; query: string; tena
     let next = unique(batches.flat());
     if (jevExpand && next.length && args.judge) {
       try {
-        const { result, judgments } = await call(args.judge, { purpose: "expand", query: args.query, candidates: next, criteria: "Score how useful each available relationship target is for answering the query. Expand targets scoring at least 0.5.", signal: new AbortController().signal }, new Set(next.map((memory) => memory.id)), limits, trace);
-        addUsage(trace, result.usage);
+        const judgments = await judgeCandidates(args.judge, { purpose: "expand", query: args.query, candidates: next, criteria: "Score how useful each available relationship target is for answering the query. Expand targets scoring at least 0.5.", signal: new AbortController().signal }, limits, trace);
         const expand = new Set(judgments.filter((judgment) => judgment.expand ?? judgment.score >= 0.5).map((judgment) => judgment.id));
         next = next.filter((memory) => expand.has(memory.id));
       } catch (error) {
@@ -137,8 +164,7 @@ export async function retrieve(args: { mode: ExperimentMode; query: string; tena
   const jevRank = args.mode === "reranker-only" || args.mode === "reranker-and-traversal";
   if (jevRank && all.length && args.judge) {
     try {
-      const { result, judgments } = await call(args.judge, { purpose: "rank", query: args.query, candidates: all, criteria: "Score how strongly each memory contains evidence that answers the query. Prefer direct, current evidence; use historical evidence when the query asks about the past.", signal: new AbortController().signal }, new Set(all.map((memory) => memory.id)), limits, trace);
-      addUsage(trace, result.usage);
+      const judgments = await judgeCandidates(args.judge, { purpose: "rank", query: args.query, candidates: all, criteria: "Score how strongly each memory contains evidence that answers the query. Prefer direct, current evidence; use historical evidence when the query asks about the past.", signal: new AbortController().signal }, limits, trace);
       const scores = new Map(judgments.map((judgment) => [judgment.id, judgment.score]));
       ranked = [...all].sort((a, b) => scores.get(b.id)! - scores.get(a.id)! || b.initialScore - a.initialScore || a.id.localeCompare(b.id));
     } catch (error) {
