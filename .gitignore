@@ -43,3 +43,5 @@ yarn-error.log*
 .venv
 .arch
 __pycache__
+
+longmemeval-results/

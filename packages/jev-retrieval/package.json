@@ -1,0 +1,19 @@
+{
+  "name": "@supermemory/jev-retrieval",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "bun test",
+    "check-types": "tsc --noEmit",
+    "evaluate": "bun src/cli.ts",
+    "benchmark:longmemeval": "bun src/longmemeval-cli.ts"
+  },
+  "dependencies": {
+    "@typesafe-ai/sdk": "0.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "5.8.3"
+  }
+}
