@@ -10,7 +10,7 @@
     "benchmark:longmemeval": "bun src/longmemeval-cli.ts"
   },
   "dependencies": {
-    "@typesafe-ai/sdk": "latest"
+    "@typesafe-ai/sdk": "0.6.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

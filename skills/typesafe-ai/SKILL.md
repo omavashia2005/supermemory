@@ -1,3 +1,3 @@
 # TypeSafe AI skill installation status
 
-The required installer was run on 2026-09-17 but the environment proxy returned HTTP 403 before any skill content could be downloaded. This placeholder must not be treated as the upstream skill. Re-run the command in this file's sibling `INSTALLATION.md`, then replace this file with the installed upstream skill before live work.
+This checkout's upstream skill was installed at `.agents/skills/typesafe-ai/` on 2026-09-17. This file is only a status placeholder; use the installed skill. The official SDK, Score, model, rate-limit, and reranking docs were read and `@typesafe-ai/sdk` 0.6.0 is installed. No authenticated Jev request has been run because this environment has no `TYPESAFE_API_KEY`.
